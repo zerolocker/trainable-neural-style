@@ -1,3 +1,9 @@
+import skimage
+import skimage.io
+import skimage.transform
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
 def load_image_as_batch_with_optional_resize(path, newH=None, newW=None):
     img = skimage.io.imread(path)
     img = img / 255.0
@@ -18,8 +24,8 @@ def load_image_as_batch_with_optional_resize(path, newH=None, newW=None):
     img = img.reshape((1,)+img.shape)
     return img
 
-def buildTransformNet(img, useNonHackScaling=False):
-    assert input_shape == [d.value for d in img.get_shape()]   # now we fix the image size and assume 
+def buildTransformNet(img, expected_shape, useNonHackScaling=False):
+    assert expected_shape == [d.value for d in img.get_shape()]   # now we fix the image size and assume 
       # img has an already-defined shape. Otherwise Tensorflow will fail to infer the output shape of the layer
         # which is very inconvinent for debugging
     
