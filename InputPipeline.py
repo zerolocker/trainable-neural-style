@@ -6,7 +6,8 @@ import numpy as np
 import tensorflow as tf
 from IPython import embed
 import os
-    
+
+logfile = None
 
 def create_input_pipeline(img_dir_path, batch_size, NEW_H, NEW_W): 
     tmp = os.listdir(img_dir_path)
@@ -23,7 +24,7 @@ def create_input_pipeline(img_dir_path, batch_size, NEW_H, NEW_W):
     file_contents = tf.read_file(input_queue.dequeue())
     one_image = tf.image.decode_jpeg(file_contents, channels=3)
     one_image = tf.image.convert_image_dtype(one_image, tf.float32)
-    printdebug('image scale of InputPipeline will be [0,1], could try [0,255] and substract mean later.')
+    printdebug('image scale of InputPipeline will be [0,1], could try [0,255] and substract mean later.',logfile)
     one_image = tf.image.resize_images(one_image, NEW_H, NEW_W)
 
     # Optional Preprocessing or Data Augmentation
@@ -31,7 +32,7 @@ def create_input_pipeline(img_dir_path, batch_size, NEW_H, NEW_W):
 
     # Batching (input tensors backed by a queue; and then combine inputs into a batch)
     image_batch = tf.train.batch([one_image], batch_size=batch_size, capacity=3*batch_size)
-    printdebug("Inferred image_batch shape:(check if it is fully specified!)" + str(image_batch.get_shape().as_list()))
+    printdebug("Inferred image_batch shape:(check if it is fully specified!)" + str(image_batch.get_shape().as_list()),logfile)
     return image_batch, len(img_filenames)
     
 

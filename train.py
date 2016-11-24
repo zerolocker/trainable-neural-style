@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 import custom_vgg19, Lib, InputPipeline
 from InputPipeline import printdebug
 
-BATCH_SIZE = 10
+BATCH_SIZE = 15
 input_shape = [BATCH_SIZE, 256, 256, 3]
 STYLE_LAYERS = ('conv1_1', 'conv2_1', 'conv3_1', 'conv4_1')
 CONTENT_LAYER = 'conv4_2' # I can get good result with relu3_2 with slow neural-style with same weight. maybe I can try here
-CONTENT_WEIGHT = 7.5
+CONTENT_WEIGHT = 15
 STYLE_WEIGHT = 100
 NEW_H, NEW_W = 256, 256
 
@@ -23,8 +23,9 @@ parser.add_argument('--checkpoint-dir', type=str, dest='checkpoint_dir', help='d
 parser.add_argument('--model-prefix', type=str, dest='model_prefix', help='filename prefix of saved checkpoint', default='')
 options = parser.parse_args()
 
-
-logfile = open('out/'+os.path.basename(options.style)+'.log','w+')
+paramStr = "%s_s%d_c%d" % (os.path.basename(options.style),int(STYLE_WEIGHT),int(CONTENT_WEIGHT))
+logfile = open('out/'+paramStr+'.log','w+')
+InputPipeline.logfile=logfile # let InputPipeline print some log, too
 styleimg = Lib.load_image_as_batch_with_optional_resize(options.style)
 img_train, NUM_EXAMPLES = InputPipeline.create_input_pipeline(batch_size=BATCH_SIZE, img_dir_path=options.train_path, NEW_H=NEW_H, NEW_W=NEW_W)
 
@@ -89,20 +90,20 @@ threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 # some bookkeeping
 MAX_ITER = options.epochs * NUM_EXAMPLES / BATCH_SIZE
 duration = 0
-chkpt_fname = 'chkpts/candy.ckpt'
+chkpt_fname = 'chkpts/'+paramStr
 
 printdebug('Training starts! NUM_EXAMPLES: %d BATCH_SIZE: %d' % (NUM_EXAMPLES,BATCH_SIZE), logfile)
-for it in xrange(MAX_ITER):
+for it in xrange(1, MAX_ITER+1):
     epoch = (it * BATCH_SIZE) / float(NUM_EXAMPLES)
     start_time = time.time()
     l = sess.run([train_op, loss]+ style_losses +[content_loss])
     duration += time.time() - start_time
-    if (it+1) % 10 == 0:
+    if it % 10 == 0:
         printdebug('epoch: {:.3f}, {:d}/{:d}, elapsed: {:.1f}s {:s}'.format(epoch, it, MAX_ITER, duration, str(l[1:])), logfile)
         duration = 0
-    if (it+1) % 100 == 0:
-        saver.save(sess, chkpt_fname)
+    if it % 1000 == 0:
+        saver.save(sess, '%s_%d.ckpt' % (chkpt_fname, it))
 
-saver.save(sess, chkpt_fname)
+saver.save(sess, '%s.ckpt' % (chkpt_fname))
 
 

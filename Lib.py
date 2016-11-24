@@ -45,7 +45,7 @@ def buildTransformNet(img, expected_shape, useNonHackScaling=False):
         res5 = residual_block(res4, n_in_channel=128, n_out_channel=128)
         deconv1 = de_conv_layer(res5, n_in_channel=128, n_out_channel=64, filter_size=3, stride=2)
         deconv2 = de_conv_layer(deconv1, n_in_channel=64, n_out_channel=32, filter_size=3, stride=2)
-        convColor = conv_layer(deconv2, n_in_channel=32, n_out_channel=3, filter_size=9, stride=1)
+        convColor = conv_layer(deconv2, n_in_channel=32, n_out_channel=3, filter_size=9, stride=1, hasRelu=False) # if hasRelu, then x>0, then tanh(x) always>0
         if useNonHackScaling:
             tanh = tf.nn.tanh(convColor)
             scaled_01 = tanh / 2 + 0.5
