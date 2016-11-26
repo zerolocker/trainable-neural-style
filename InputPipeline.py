@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 from IPython import embed
 import os
+from resize_image_with_crop_or_pad_pipeline import resize_image_with_crop_or_pad
 
 logfile = None
 
@@ -34,7 +35,6 @@ def create_input_pipeline(img_dir_path, batch_size, NEW_H, NEW_W):
     image_batch = tf.train.batch([one_image], batch_size=batch_size, capacity=3*batch_size)
     printdebug("Inferred image_batch shape:(check if it is fully specified!)" + str(image_batch.get_shape().as_list()),logfile)
     return image_batch, len(img_filenames)
-    
 
 def printdebug(str, logfile=None):
     print('  ----   DEBUG: '+str)

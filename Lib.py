@@ -24,6 +24,42 @@ def load_image_as_batch_with_optional_resize(path, newH=None, newW=None):
     img = img.reshape((1,)+img.shape)
     return img
 
+def buildStyconNet(content, style, useNonHackScaling=False):
+    # currently deconv layer needs an already known shape 
+    for d in content.get_shape().as_list(): assert d is not None 
+    for d in style.get_shape().as_list(): assert d is not None 
+
+    with tf.variable_scope("styconNet"):
+        with tf.variable_scope("con"):       
+            conv1 = conv_layer(content, n_in_channel=3, n_out_channel=32, filter_size=9, stride=1, hasRelu=True)
+            conv2 = conv_layer(conv1, n_in_channel=32, n_out_channel=64, filter_size=3, stride=2, hasRelu=True)
+            conv3 = conv_layer(conv2, n_in_channel=64, n_out_channel=128, filter_size=3, stride=2, hasRelu=True)
+            res1 = residual_block(conv3, n_in_channel=128, n_out_channel=128)
+            res2_con = residual_block(res1, n_in_channel=128, n_out_channel=128)
+        with tf.variable_scope("sty"):
+                conv1 = conv_layer(style, n_in_channel=3, n_out_channel=32, filter_size=9, stride=1, hasRelu=True)
+                conv2 = conv_layer(conv1, n_in_channel=32, n_out_channel=64, filter_size=3, stride=2, hasRelu=True)
+                conv3 = conv_layer(conv2, n_in_channel=64, n_out_channel=128, filter_size=3, stride=2, hasRelu=True)
+                res1 = residual_block(conv3, n_in_channel=128, n_out_channel=128)
+                res2_sty = residual_block(res1, n_in_channel=128, n_out_channel=128)
+        with tf.variable_scope("decoder"):
+            combined = tf.mul(res2_con, res2_sty)
+            res3 = residual_block(combined, n_in_channel=128, n_out_channel=128)
+            res4 = residual_block(res3, n_in_channel=128, n_out_channel=128)
+            res5 = residual_block(res4, n_in_channel=128, n_out_channel=128)
+            deconv1 = de_conv_layer(res5, n_in_channel=128, n_out_channel=64, filter_size=3, stride=2)
+            deconv2 = de_conv_layer(deconv1, n_in_channel=64, n_out_channel=32, filter_size=3, stride=2)
+            convColor = conv_layer(deconv2, n_in_channel=32, n_out_channel=3, filter_size=9, stride=1, hasRelu=False) # if hasRelu, then x>0, then tanh(x) always>0
+            if useNonHackScaling:
+                tanh = tf.nn.tanh(convColor)
+                scaled_01 = tanh / 2 + 0.5
+            else:
+                tanh = tf.nn.tanh(convColor) * 150 + 255./2  # TODO: why tanh * 150 + 255/2 is good?
+                scaled_01 = tanh / 255.0
+    return scaled_01
+
+
+
 def buildTransformNet(img, expected_shape, useNonHackScaling=False):
     assert expected_shape == [d.value for d in img.get_shape()]   # now we fix the image size and assume 
       # img has an already-defined shape. Otherwise Tensorflow will fail to infer the output shape of the layer
@@ -113,3 +149,9 @@ def compute_content_loss(feat_map_target, feat_map_batch):
     content_loss = tf.nn.l2_loss(feat_map_target-feat_map_batch)/(bsize*h*w*ch)
     return content_loss
 
+def compute_tv_loss(img_gen):
+    bsize, h , w, ch = img_gen.get_shape().as_list()
+    y_tv = tf.nn.l2_loss(img_gen[:,1:,:,:] - img_gen[:,:h-1,:,:])
+    x_tv = tf.nn.l2_loss(img_gen[:,:,1:,:] - img_gen[:,:,:w-1,:])
+    tv_loss = (x_tv + y_tv)/(bsize*h*w*ch)
+    return tv_loss
