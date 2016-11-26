@@ -65,11 +65,12 @@ def conv_layer(input, n_in_channel, n_out_channel, filter_size, stride, hasRelu=
     return output
 
 def de_conv_layer(input, n_in_channel, n_out_channel, filter_size, stride):
-    filt = tf.Variable(tf.truncated_normal([filter_size, filter_size, n_out_channel, n_in_channel], stddev=.1))
+    filt = tf.Variable(tf.truncated_normal([filter_size, filter_size, n_in_channel, n_out_channel], stddev=.1))
     in_shape = [s.value for s in input.get_shape()]
     out_shape = [in_shape[0], in_shape[1]*stride, in_shape[2]*stride, n_out_channel]
-    output = tf.nn.conv2d_transpose(input, filt, output_shape=out_shape, strides=[1,stride, stride, 1])
-    print("deconv layer, output size: %s" % ([i.value for i in output.get_shape()]))
+    input = tf.image.resize_images(input, out_shape[1], out_shape[2], method=1)
+    output = tf.nn.conv2d(input, filt, strides=[1, 1, 1, 1], padding='SAME')
+    print("resize-conv layer, output size: %s" % ([i.value for i in output.get_shape()]))
     return output
 
 def residual_block(input, n_in_channel, n_out_channel, name="n/a"):
