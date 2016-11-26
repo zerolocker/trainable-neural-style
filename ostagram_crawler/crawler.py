@@ -90,8 +90,8 @@ def main():
     downloader = Downloader(out_dir='downloaded')
     parser = MyHTMLParser(downloader)
 
-    # start
-
+    # start crawling
+    # To resume crawling, simply search for next url in the log file, and copy it here
     url = r'http://ostagram.ru/static_pages/lenta?_=1480121644785&ftime=1044363&last_days=30&locale=en&page=3&ftime=1003738'
 
     try:
@@ -129,7 +129,7 @@ def main():
             print ('Download thread finished. Starting next batch...')
 
             with open('last_downloaded_id.txt', 'a') as f:
-                f.write(downloader.last_generated_img_ID + " " + time.asctime()+'\n')
+                f.write(downloader.last_generated_img_ID + " next url: " + nexturl + ' ' + time.asctime()+'\n')
 
             url = nexturl
 
