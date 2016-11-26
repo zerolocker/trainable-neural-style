@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import custom_vgg19, Lib, InputPipeline
 from InputPipeline import printdebug
 
-BATCH_SIZE = 15
+BATCH_SIZE = 10
 input_shape = [BATCH_SIZE, 256, 256, 3]
 STYLE_LAYERS = ('conv1_1', 'conv2_1', 'conv3_1', 'conv4_1')
 CONTENT_LAYER = 'conv4_2' # I can get good result with relu3_2 with slow neural-style with same weight. maybe I can try here
@@ -21,12 +21,13 @@ parser.add_argument('--train-path', type=str, dest='train_path', help='path to t
 parser.add_argument('--epochs', type=int, dest='epochs', help='num epochs', default=2)
 parser.add_argument('--checkpoint-dir', type=str, dest='checkpoint_dir', help='dir to save checkpoint in', default='chkpts/')
 parser.add_argument('--model-prefix', type=str, dest='model_prefix', help='filename prefix of saved checkpoint', default='')
+parser.add_argument('--resize-style-height', type=int, dest='resize_style_h', help='resize style img to this height. Higher extracts smaller features', default=NEW_H)
 options = parser.parse_args()
 
-paramStr = "%s_s%d_c%d" % (os.path.basename(options.style),int(STYLE_WEIGHT),int(CONTENT_WEIGHT))
+paramStr = "%s_%s_s%d_c%d" % (os.path.basename(options.style),options.model_prefix,int(STYLE_WEIGHT),int(CONTENT_WEIGHT))
 logfile = open('out/'+paramStr+'.log','w+')
 InputPipeline.logfile=logfile # let InputPipeline print some log, too
-styleimg = Lib.load_image_as_batch_with_optional_resize(options.style)
+styleimg = Lib.load_image_as_batch_with_optional_resize(options.style, newH=options.resize_style_h)
 img_train, NUM_EXAMPLES = InputPipeline.create_input_pipeline(batch_size=BATCH_SIZE, img_dir_path=options.train_path, NEW_H=NEW_H, NEW_W=NEW_W)
 
 
@@ -90,7 +91,7 @@ threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 # some bookkeeping
 MAX_ITER = options.epochs * NUM_EXAMPLES / BATCH_SIZE
 duration = 0
-chkpt_fname = 'chkpts/'+paramStr
+chkpt_fname = options.checkpoint_dir+'/'+paramStr
 
 printdebug('Training starts! NUM_EXAMPLES: %d BATCH_SIZE: %d' % (NUM_EXAMPLES,BATCH_SIZE), logfile)
 for it in xrange(1, MAX_ITER+1):
