@@ -29,11 +29,10 @@ def buildTransformNet(img, expected_shape, useNonHackScaling=False):
       # img has an already-defined shape. Otherwise Tensorflow will fail to infer the output shape of the layer
         # which is very inconvinent for debugging
     
-    # img = tf.pad(img, [[40,40],[40,40]]) # TODO maybe add it later after I finished it. 
-            # But I don't know why fast-style-transfer repo doesn't follow the paper's supp material PDF to
+    img = tf.pad(img, [[0,0],[40,40],[40,40],[0,0]], mode='REFLECT') # the same as the paper's supp material PDF.
+            # I don't know why fast-style-transfer repo doesn't do the same, which is:
             #    (1) have this padding step
             #    (2) not use padding in the residual blocks' conv layers
-            # Maybe I can try to implement it later to see if it can produce better images
     with tf.variable_scope("transNet"):
         conv1 = conv_layer(img, n_in_channel=3, n_out_channel=32, filter_size=9, stride=1, hasRelu=True)
         conv2 = conv_layer(conv1, n_in_channel=32, n_out_channel=64, filter_size=3, stride=2, hasRelu=True)
@@ -54,10 +53,10 @@ def buildTransformNet(img, expected_shape, useNonHackScaling=False):
             scaled_01 = tanh / 255.0
     return scaled_01
     
-def conv_layer(input, n_in_channel, n_out_channel, filter_size, stride, hasRelu=True):
+def conv_layer(input, n_in_channel, n_out_channel, filter_size, stride, hasRelu=True, padding='SAME'):
     # TODO conv layer without adding bias ( bias is not used in paper either). but I could try it later if time permitted. tf.nn.bias_add
     filt = tf.Variable(tf.truncated_normal([filter_size, filter_size, n_in_channel, n_out_channel], stddev=.1))
-    output = tf.nn.conv2d(input, filt, [1,stride,stride,1], padding='SAME')
+    output = tf.nn.conv2d(input, filt, [1,stride,stride,1], padding=padding)
     output = _instance_norm(output) # TODO read what is instance normalization 
     if hasRelu:
         output = tf.nn.relu(output)
@@ -75,9 +74,10 @@ def de_conv_layer(input, n_in_channel, n_out_channel, filter_size, stride):
 
 def residual_block(input, n_in_channel, n_out_channel, name="n/a"):
     print("START residual_block ")
-    output = conv_layer(input, n_in_channel, n_out_channel, filter_size=3, stride=1, hasRelu=True)
-    output = conv_layer(output,n_out_channel, n_out_channel, filter_size=3, stride=1, hasRelu=False)
-    output = input + output
+    output = conv_layer(input, n_in_channel, n_out_channel, filter_size=3, stride=1, hasRelu=True, padding='VALID')
+    output = conv_layer(output,n_out_channel, n_out_channel, filter_size=3, stride=1, hasRelu=False, padding='VALID')
+    bsize, h, w, ch = [i.value for i in input.get_shape()]
+    output = input[:,2:h-2, 2:w-2, :] + output
     print("END residual_block")
     return output
     
@@ -90,7 +90,7 @@ def _instance_norm(net):
     shift = tf.Variable(tf.zeros(var_shape), name="instnorm_shift")
     scale = tf.Variable(tf.ones(var_shape), name="instnorm_scale")
     epsilon = 1e-3
-    normalized = (net-mu)/(sigma_sq + epsilon)**(.5)
+    normalized = (net-mu)/tf.sqrt(sigma_sq + epsilon)
     return scale * normalized + shift
 
 def gram_matrix(feat_map_batch):
