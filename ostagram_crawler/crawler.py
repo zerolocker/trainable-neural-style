@@ -92,7 +92,7 @@ def main():
 
     # start crawling
     # To resume crawling, simply search for next url in the log file, and copy it here
-    url = r'http://ostagram.ru/static_pages/lenta?_=1480121644785&amp;ftime=1055059&amp;last_days=30&amp;locale=en&amp;page=3316&ftime=1057952'
+    url = r'http://ostagram.ru/static_pages/lenta?_=1480121644785&amp;ftime=1026229&amp;last_days=30&amp;locale=en&amp;page=5017&ftime=1025315'
 
     try:
         while True:
