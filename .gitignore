@@ -1,3 +1,6 @@
+deepart_crawler/
+ostagram_crawler/
+tensorflow_vgg/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

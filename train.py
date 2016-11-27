@@ -13,7 +13,6 @@ STYLE_LAYERS = ('conv1_1', 'conv2_1', 'conv3_1', 'conv4_1')
 CONTENT_LAYER = 'conv4_2' # I can get good result with relu3_2 with slow neural-style with same weight. maybe I can try here
 CONTENT_WEIGHT = 7.5
 STYLE_WEIGHT = 100
-TV_WEIGHT = 100000
 NEW_H, NEW_W = 256, 256
 CHKPTS_DIR = 'chkpts/hasArtifact'
 
@@ -32,7 +31,7 @@ parser.add_argument('--checkpoint-dir', type=str, dest='checkpoint_dir', help='d
 parser.add_argument('--model-prefix', type=str, dest='model_prefix', help='filename prefix of saved checkpoint', default='')
 options = parser.parse_args()
 
-paramStr = "%s_s%d_c%d" % ('%dstyles' % len(styleimgs), int(STYLE_WEIGHT), int(CONTENT_WEIGHT))
+paramStr = "%s_%s_s%d_c%d" % ('%dstyles' % len(styleimgs),options.model_prefix, int(STYLE_WEIGHT), int(CONTENT_WEIGHT))
 logfile = open('out/'+paramStr+'.log','w+')
 InputPipeline.logfile=logfile # let InputPipeline print some log, too
 img_train, NUM_EXAMPLES = InputPipeline.create_input_pipeline(batch_size=BATCH_SIZE, img_dir_path=options.train_path, NEW_H=NEW_H, NEW_W=NEW_W)
@@ -92,8 +91,8 @@ content_layer_target = getattr(vgg19_extractContent, CONTENT_LAYER)
 
 style_losses = [Lib.compute_style_loss(styleimg_grams[i], style_layers_pred[i]) for i in xrange(len(styleimg_grams))]
 content_loss = Lib.compute_content_loss(content_layer_target, content_layer_pred)
-tv_loss = Lib.compute_tv_loss(img_pred)
-loss = STYLE_WEIGHT * reduce(tf.add, style_losses) + CONTENT_WEIGHT * content_loss + TV_WEIGHT * tv_loss 
+# tv_loss = Lib.compute_tv_loss(img_pred) # seems not helping(may need exp to confirm) 
+loss = STYLE_WEIGHT * reduce(tf.add, style_losses) + CONTENT_WEIGHT * content_loss 
 optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
 train_op = optimizer.minimize(loss)
 
@@ -107,7 +106,7 @@ threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 # some bookkeeping
 MAX_ITER = options.epochs * NUM_EXAMPLES / BATCH_SIZE
 duration = 0
-chkpt_fname = 'chkpts/'+paramStr
+chkpt_fname = options.checkpoint_dir+'/'+paramStr
 
 printdebug('Training starts! NUM_EXAMPLES: %d BATCH_SIZE: %d' % (NUM_EXAMPLES,BATCH_SIZE), logfile)
 for it in xrange(1, MAX_ITER+1):
@@ -116,7 +115,7 @@ for it in xrange(1, MAX_ITER+1):
     styleimg = styleimgs[np.random.choice(len(styleimgs))]
 
     start_time = time.time()
-    l = sess.run([train_op, loss]+ style_losses +[content_loss, tv_loss], feed_dict={styleimg_ph: styleimg})
+    l = sess.run([train_op, loss]+ style_losses +[content_loss], feed_dict={styleimg_ph: styleimg})
     duration += time.time() - start_time
     if it % 10 == 0:
         printdebug('epoch: {:.3f}, {:d}/{:d}, elapsed: {:.1f}s {:s}'.format(epoch, it, MAX_ITER, duration, str(l[1:])), logfile)
