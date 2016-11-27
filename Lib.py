@@ -34,17 +34,17 @@ def buildTransformNet(img, expected_shape, useNonHackScaling=False):
             #    (1) have this padding step
             #    (2) not use padding in the residual blocks' conv layers
     with tf.variable_scope("transNet"):
-        conv1 = conv_layer(img, n_in_channel=3, n_out_channel=16, filter_size=9, stride=1, hasRelu=True)
-        conv2 = conv_layer(conv1, n_in_channel=16, n_out_channel=32, filter_size=3, stride=2, hasRelu=True)
-        conv3 = conv_layer(conv2, n_in_channel=32, n_out_channel=64, filter_size=3, stride=2, hasRelu=True)
-        res1 = residual_block(conv3, n_in_channel=64, n_out_channel=64)
-        res2 = residual_block(res1, n_in_channel=64, n_out_channel=64)
-        res3 = residual_block(res2, n_in_channel=64, n_out_channel=64)
-        res4 = residual_block(res3, n_in_channel=64, n_out_channel=64)
-        res5 = residual_block(res4, n_in_channel=64, n_out_channel=64)
-        deconv1 = de_conv_layer(res5, n_in_channel=64, n_out_channel=32, filter_size=3, stride=2)
-        deconv2 = de_conv_layer(deconv1, n_in_channel=32, n_out_channel=16, filter_size=3, stride=2)
-        convColor = conv_layer(deconv2, n_in_channel=16, n_out_channel=3, filter_size=9, stride=1, hasRelu=False) # if hasRelu, then x>0, then tanh(x) always>0
+        conv1 = conv_layer(img, n_in_channel=3, n_out_channel=32, filter_size=9, stride=1, hasRelu=True)
+        conv2 = conv_layer(conv1, n_in_channel=32, n_out_channel=64, filter_size=3, stride=2, hasRelu=True)
+        conv3 = conv_layer(conv2, n_in_channel=64, n_out_channel=128, filter_size=3, stride=2, hasRelu=True)
+        res1 = residual_block(conv3, n_in_channel=128, n_out_channel=128)
+        res2 = residual_block(res1, n_in_channel=128, n_out_channel=128)
+        res3 = residual_block(res2, n_in_channel=128, n_out_channel=128)
+        res4 = residual_block(res3, n_in_channel=128, n_out_channel=128)
+        res5 = residual_block(res4, n_in_channel=128, n_out_channel=128)
+        deconv1 = de_conv_layer(res5, n_in_channel=128, n_out_channel=64, filter_size=2, stride=2)
+        deconv2 = de_conv_layer(deconv1, n_in_channel=64, n_out_channel=32, filter_size=2, stride=2)
+        convColor = conv_layer(deconv2, n_in_channel=32, n_out_channel=3, filter_size=9, stride=1, hasRelu=False) # if hasRelu, then x>0, then tanh(x) always>0
         if useNonHackScaling:
             tanh = tf.nn.tanh(convColor)
             scaled_01 = tanh / 2 + 0.5
@@ -64,12 +64,13 @@ def conv_layer(input, n_in_channel, n_out_channel, filter_size, stride, hasRelu=
     return output
 
 def de_conv_layer(input, n_in_channel, n_out_channel, filter_size, stride):
-    filt = tf.Variable(tf.truncated_normal([filter_size, filter_size, n_in_channel, n_out_channel], stddev=.1))
+    filt = tf.Variable(tf.truncated_normal([filter_size, filter_size, n_out_channel, n_in_channel], stddev=.1))
     in_shape = [s.value for s in input.get_shape()]
     out_shape = [in_shape[0], in_shape[1]*stride, in_shape[2]*stride, n_out_channel]
-    input = tf.image.resize_images(input, out_shape[1], out_shape[2], method=1)
-    output = tf.nn.conv2d(input, filt, strides=[1, 1, 1, 1], padding='SAME')
-    print("resize-conv layer, output size: %s" % ([i.value for i in output.get_shape()]))
+    output = tf.nn.conv2d_transpose(input, filt, output_shape=out_shape, strides=[1,stride, stride, 1])
+    output = _instance_norm(output)
+    output = tf.nn.relu(output)
+    print("deconv layer, output size: %s" % ([i.value for i in output.get_shape()]))
     return output
 
 def residual_block(input, n_in_channel, n_out_channel, name="n/a"):
