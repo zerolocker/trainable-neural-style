@@ -4,7 +4,7 @@ import time,os, argparse
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-import custom_vgg19, Lib, InputPipeline
+import custom_vgg19, Lib, InputPipeline, OtherNetDefs
 from InputPipeline import printdebug
 
 BATCH_SIZE = 10
@@ -29,6 +29,7 @@ parser.add_argument('--train-path', type=str, dest='train_path', help='path to t
 parser.add_argument('--epochs', type=int, dest='epochs', help='num epochs', default=2)
 parser.add_argument('--checkpoint-dir', type=str, dest='checkpoint_dir', help='dir to save checkpoint in', default='chkpts/')
 parser.add_argument('--model-prefix', type=str, dest='model_prefix', help='filename prefix of saved checkpoint', default='')
+parser.add_argument('--styconNet-type', type=str, dest='styconNet_type', help='either"concat" or "product" or "multiproduct"', default='product')
 options = parser.parse_args()
 
 paramStr = "%s_%s_s%d_c%d" % ('%dstyles' % len(styleimgs),options.model_prefix, int(STYLE_WEIGHT), int(CONTENT_WEIGHT))
@@ -62,7 +63,16 @@ chkpt_file_list = [CHKPTS_DIR+'/'+f  for f in os.listdir(CHKPTS_DIR)]
 # construct img transfrom network
 sess=tf.Session()
 styleimg_ph = tf.placeholder(tf.float32, shape=[1,]+input_shape[1:])
-img_pred = Lib.buildStyconNet(img_train, styleimg_ph)
+if options.styconNet_type == 'product':
+    printdebug("StyconNet type: product", logfile)
+    img_pred = Lib.buildStyconNet(img_train, styleimg_ph)
+elif options.styconNet_type == 'concat':
+    printdebug("StyconNet type: concat", logfile)
+    img_pred = OtherNetDefs.buildStyconNetConcat(img_train, styleimg_ph)
+elif options.styconNet_type == 'multiproduct':
+    printdebug("StyconNet type: multiproduct", logfile)
+    img_pred = OtherNetDefs.buildStyconNetMultiProduct(img_train, styleimg_ph)
+
 
 # construct vgg19 to extract pred img's content & style
 vgg19factory = custom_vgg19.Vgg19Factory()
