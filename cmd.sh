@@ -9,6 +9,6 @@
 
 echo $@
 date
-ipython train.py --  --train-path 'contents/coco/train2014/' --model-prefix StyconMultiproduct --styconNet-type 'multiproduct'
+ipython ostagram_stycon_train.py -- --train-path ostagram_crawler/downloaded/ --model-prefix OstagramStyconSmallLossProduct  --styconNet-type product
 date
 

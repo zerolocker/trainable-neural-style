@@ -151,7 +151,7 @@ def compute_style_loss(gram_target, feat_map_batch):
     return style_loss
 
 def compute_content_loss(feat_map_target, feat_map_batch):
-    bsize, h, w, ch  = feat_map_batch.get_shape().as_list()
+    bsize, h, w, ch  = feat_map_batch.get_shape().as_list()  # TODO I think we could just use tf.reduce_mean() to avoid getting the shape
     content_loss = tf.nn.l2_loss(feat_map_target-feat_map_batch)/(bsize*h*w*ch)
     return content_loss
 

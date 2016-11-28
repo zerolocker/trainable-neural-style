@@ -54,7 +54,8 @@ def buildStyconNetConcat(content, style, useNonHackScaling=False):
 
     content = tf.pad(content, [[0,0],[40,40],[40,40],[0,0]], mode='REFLECT')
     style = tf.pad(style, [[0,0],[40,40],[40,40],[0,0]], mode='REFLECT')
-    style = tf.tile(style, [content.get_shape().as_list()[0], 1, 1, 1])
+    if style.get_shape().as_list()[0] == 1: # if batch_size of style is one
+        style = tf.tile(style, [content.get_shape().as_list()[0], 1, 1, 1])
     imgConcat = tf.concat(concat_dim=3, values=[content, style])
 
     with tf.variable_scope("styconNetConcat"):

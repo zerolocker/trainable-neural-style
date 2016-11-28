@@ -6,7 +6,6 @@ import numpy as np
 import tensorflow as tf
 from IPython import embed
 import os
-from resize_image_with_crop_or_pad_pipeline import resize_image_with_crop_or_pad
 
 logfile = None
 

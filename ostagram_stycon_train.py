@@ -38,7 +38,8 @@ elif options.styconNet_type == 'multiproduct':
     printdebug("StyconNet type: multiproduct", logfile)
     img_pred = OtherNetDefs.buildStyconNetMultiProduct(C_batch, S_batch)
 
-loss = tf.nn.l2_loss(img_pred - G_batch) / BATCH_SIZE
+# loss = tf.nn.l2_loss(img_pred - G_batch) / BATCH_SIZE # loss is around 6000, but causes 1st layer having nan weight
+loss = tf.reduce_mean(tf.square(img_pred - G_batch)) # loss is around 0.1
 optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
 train_op = optimizer.minimize(loss)
 
