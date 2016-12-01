@@ -91,8 +91,8 @@ def main():
     parser = MyHTMLParser(downloader)
 
     # start crawling
-    # To resume crawling, simply search for next url in the log file, and copy it here
-    url = r'http://ostagram.ru/static_pages/lenta?_=1480121644785&amp;ftime=1026229&amp;last_days=30&amp;locale=en&amp;page=5017&ftime=1025315'
+    # To resume crawling, simply search for next url in the log file last_downloaded_id.txt, and copy it here
+    url = r'http://ostagram.ru/static_pages/lenta?_=1480121644785&ftime=1044363&last_days=30&locale=en&page=3&ftime=1003738'
 
     try:
         while True:
