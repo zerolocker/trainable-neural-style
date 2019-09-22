@@ -1,7 +1,7 @@
 # trainable-neural-style
 Neural Network with Artistic Style Synthesis
 
-
+## Demo
 Input image:
 <div align="center">
  <img src="https://github.com/zerolocker/trainable-neural-style/blob/master/ut_trees.png" height="223px">
